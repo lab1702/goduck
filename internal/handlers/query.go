@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"goduck/internal/database"
-	"goduck/pkg/models"
+	"github.com/lab1702/goduck/internal/database"
+	"github.com/lab1702/goduck/pkg/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

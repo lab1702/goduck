@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"goduck/pkg/models"
+	"github.com/lab1702/goduck/pkg/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

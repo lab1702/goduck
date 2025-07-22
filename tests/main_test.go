@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"goduck/internal/database"
-	"goduck/internal/handlers"
-	"goduck/internal/middleware"
-	"goduck/pkg/models"
+	"github.com/lab1702/goduck/internal/database"
+	"github.com/lab1702/goduck/internal/handlers"
+	"github.com/lab1702/goduck/internal/middleware"
+	"github.com/lab1702/goduck/pkg/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

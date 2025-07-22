@@ -1,4 +1,4 @@
-module goduck
+module github.com/lab1702/goduck
 
 go 1.24.2
 

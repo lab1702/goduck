@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"goduck/internal/config"
-	"goduck/internal/database"
-	"goduck/internal/handlers"
-	"goduck/internal/middleware"
+	"github.com/lab1702/goduck/internal/config"
+	"github.com/lab1702/goduck/internal/database"
+	"github.com/lab1702/goduck/internal/handlers"
+	"github.com/lab1702/goduck/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

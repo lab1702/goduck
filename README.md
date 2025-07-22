@@ -2,6 +2,35 @@
 
 A production-ready, high-performance REST API server for executing SQL queries against DuckDB databases. Supports both file-based databases (read-only) and in-memory databases (read-write).
 
+## 📦 Installation
+
+### Install from GitHub (Recommended)
+
+Install the latest version directly from GitHub:
+
+```bash
+go install github.com/lab1702/goduck@latest
+```
+
+The binary will be installed to your `$GOPATH/bin` directory (usually `~/go/bin`). Make sure this directory is in your `PATH`:
+
+```bash
+export PATH=$PATH:~/go/bin
+goduck --help
+```
+
+### Download Binary
+
+Download pre-built binaries from the [releases page](https://github.com/lab1702/goduck/releases).
+
+### Build from Source
+
+```bash
+git clone https://github.com/lab1702/goduck.git
+cd goduck
+go build -o goduck .
+```
+
 ## 📚 Documentation
 
 - 🚀 **New to GoDuck?** Start with [GETTING_STARTED.md](GETTING_STARTED.md)
@@ -22,9 +51,12 @@ A production-ready, high-performance REST API server for executing SQL queries a
 
 ### Option 1: Use with Your DuckDB File
 ```bash
+# Install GoDuck
+go install github.com/lab1702/goduck@latest
+
 # Download and run GoDuck with your database
 export GODUCK_DATABASE_PATH="/path/to/your/database.duckdb"
-./goduck
+goduck
 
 # Test it works
 curl http://localhost:8080/health
@@ -32,9 +64,12 @@ curl http://localhost:8080/health
 
 ### Option 2: Try with In-Memory Database
 ```bash
+# Install GoDuck
+go install github.com/lab1702/goduck@latest
+
 # Run with temporary in-memory database (for testing)
 export GODUCK_READ_WRITE=true
-./goduck
+goduck
 
 # Test it works
 curl http://localhost:8080/health
@@ -42,10 +77,12 @@ curl http://localhost:8080/health
 
 ### Option 3: Use Sample Data
 ```bash
-# Create sample database and run
+# Clone repository and use sample data
+git clone https://github.com/lab1702/goduck.git
+cd goduck
 ./start_example.sh
 export GODUCK_DATABASE_PATH="./data/sample.duckdb"
-./goduck
+go run . # or build and run: go build && ./goduck
 ```
 
 **Ready to query?** See [Query Examples](#-query-examples) below.
