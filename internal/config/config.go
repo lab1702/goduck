@@ -13,15 +13,17 @@ type Config struct {
 	QueryTimeout   time.Duration
 	MaxConnections int
 	LogLevel       string
+	ReadWrite      bool
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		DatabasePath:   os.Getenv("DATABASE_PATH"),
-		Port:           getEnv("PORT", "8080"),
-		QueryTimeout:   getDurationEnv("QUERY_TIMEOUT", 30*time.Second),
-		MaxConnections: getIntEnv("MAX_CONNECTIONS", 10),
-		LogLevel:       getEnv("LOG_LEVEL", "info"),
+		DatabasePath:   os.Getenv("GODUCK_DATABASE_PATH"),
+		Port:           getEnv("GODUCK_PORT", "8080"),
+		QueryTimeout:   getDurationEnv("GODUCK_QUERY_TIMEOUT", 30*time.Second),
+		MaxConnections: getIntEnv("GODUCK_MAX_CONNECTIONS", 10),
+		LogLevel:       getEnv("GODUCK_LOG_LEVEL", "info"),
+		ReadWrite:      getBoolEnv("GODUCK_READ_WRITE", false),
 	}
 
 	return cfg, cfg.Validate()
@@ -61,6 +63,15 @@ func getIntEnv(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getBoolEnv(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
 		}
 	}
 	return defaultValue

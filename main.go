@@ -32,7 +32,7 @@ func main() {
 
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
-	db, err := database.NewDB(cfg.DatabasePath, cfg.MaxConnections)
+	db, err := database.NewDB(cfg.DatabasePath, cfg.MaxConnections, cfg.ReadWrite)
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to initialize database")
 	}

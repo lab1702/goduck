@@ -20,20 +20,35 @@ A production-ready, high-performance REST API server for executing SQL queries a
 
 ## 🚀 Quick Start
 
-**New users:** See [GETTING_STARTED.md](GETTING_STARTED.md) for a detailed walkthrough.
-
+### Option 1: Use with Your DuckDB File
 ```bash
-# 1. Set database path (optional - uses in-memory if not specified)
-export DATABASE_PATH="/path/to/your/database.duckdb"
-
-# 2. Run the server
+# Download and run GoDuck with your database
+export GODUCK_DATABASE_PATH="/path/to/your/database.duckdb"
 ./goduck
 
-# 3. Test it works
+# Test it works
 curl http://localhost:8080/health
 ```
 
-**Need sample data?** Run `./start_example.sh` to create a test database.
+### Option 2: Try with In-Memory Database
+```bash
+# Run with temporary in-memory database (for testing)
+export GODUCK_READ_WRITE=true
+./goduck
+
+# Test it works
+curl http://localhost:8080/health
+```
+
+### Option 3: Use Sample Data
+```bash
+# Create sample database and run
+./start_example.sh
+export GODUCK_DATABASE_PATH="./data/sample.duckdb"
+./goduck
+```
+
+**Ready to query?** See [Query Examples](#-query-examples) below.
 
 ## 📡 API Overview
 
@@ -51,63 +66,46 @@ Configure GoDuck using environment variables:
 
 | Variable | Default | Description | Valid Range |
 |----------|---------|-------------|-------------|
-| `DATABASE_PATH` | *Optional* | Path to DuckDB file (uses in-memory if not specified) | Any valid file path or empty |
-| `PORT` | `8080` | HTTP server port | 1-65535 |
-| `QUERY_TIMEOUT` | `30s` | Query execution timeout | 1s-10m |
-| `MAX_CONNECTIONS` | `10` | Database connection pool size | 1-100 |
-| `LOG_LEVEL` | `info` | Log level | debug, info, warn, error |
+| `GODUCK_DATABASE_PATH` | *Optional* | Path to DuckDB file (uses in-memory if not specified) | Any valid file path or empty |
+| `GODUCK_PORT` | `8080` | HTTP server port | 1-65535 |
+| `GODUCK_QUERY_TIMEOUT` | `30s` | Query execution timeout | 1s-10m |
+| `GODUCK_MAX_CONNECTIONS` | `10` | Database connection pool size | 1-100 |
+| `GODUCK_LOG_LEVEL` | `info` | Log level | debug, info, warn, error |
+| `GODUCK_READ_WRITE` | `false` | Enable read-write access (required for in-memory databases) | true, false |
 
-### 📋 Configuration Examples
+### 📋 Common Configurations
 
-**Development (with in-memory database):**
+**Basic File Database (Recommended for Production):**
 ```bash
-# No DATABASE_PATH needed - uses in-memory database
-export LOG_LEVEL="debug"
-export MAX_CONNECTIONS="5"
-```
-
-**Development (with file database):**
-```bash
-export DATABASE_PATH="./data/development.duckdb"
-export LOG_LEVEL="debug"
-export MAX_CONNECTIONS="5"
-```
-
-**Production:**
-```bash
-export DATABASE_PATH="/var/lib/goduck/production.duckdb"
-export PORT="8080"
-export LOG_LEVEL="info"
-export QUERY_TIMEOUT="60s"
-export MAX_CONNECTIONS="25"
-```
-
-## 🏃 Usage Examples
-
-### Running Locally
-```bash
-# Build and run with file database
-go build -o goduck
-DATABASE_PATH=/path/to/your/database.duckdb ./goduck
-
-# Or run with in-memory database (no DATABASE_PATH needed)
-go build -o goduck
+export GODUCK_DATABASE_PATH="/path/to/your/database.duckdb"
+export GODUCK_PORT="8080"
 ./goduck
-
-# Or with go run
-DATABASE_PATH=/path/to/your/database.duckdb go run main.go
 ```
 
-### Docker Deployment
+**In-Memory Database (Testing/Development):**
 ```bash
-# Build image
-docker build -t goduck .
+export GODUCK_READ_WRITE="true"  # Required for in-memory
+export GODUCK_PORT="8080"
+./goduck
+```
 
-# Run container with volume mount
+**High-Traffic Production:**
+```bash
+export GODUCK_DATABASE_PATH="/var/lib/goduck/production.duckdb"
+export GODUCK_MAX_CONNECTIONS="25"
+export GODUCK_QUERY_TIMEOUT="60s"
+export GODUCK_LOG_LEVEL="warn"
+./goduck
+```
+
+## 🐳 Deployment
+
+### Docker (Recommended)
+```bash
+# Run with your database file
 docker run -p 8080:8080 \
   -v /path/to/your/database.duckdb:/data/database.duckdb:ro \
-  -e DATABASE_PATH=/data/database.duckdb \
-  -e LOG_LEVEL=info \
+  -e GODUCK_DATABASE_PATH=/data/database.duckdb \
   goduck
 ```
 
@@ -116,16 +114,23 @@ docker run -p 8080:8080 \
 version: '3.8'
 services:
   goduck:
-    build: .
+    image: goduck:latest
     ports:
       - "8080:8080"
     volumes:
       - ./data/sample.duckdb:/data/database.duckdb:ro
     environment:
-      - DATABASE_PATH=/data/database.duckdb
-      - LOG_LEVEL=info
-      - MAX_CONNECTIONS=20
+      - GODUCK_DATABASE_PATH=/data/database.duckdb
+      - GODUCK_MAX_CONNECTIONS=20
 ```
+
+### Production Checklist
+- [ ] Set `GODUCK_MAX_CONNECTIONS` based on expected load (default: 10)
+- [ ] Configure `GODUCK_QUERY_TIMEOUT` for complex queries (default: 30s)
+- [ ] Set `GODUCK_LOG_LEVEL=warn` for production (default: info)
+- [ ] Monitor `/metrics` endpoint for performance
+- [ ] Set up reverse proxy with HTTPS
+- [ ] Monitor `/health` endpoint for availability
 
 ## 📖 Query Examples
 
@@ -160,10 +165,10 @@ curl -X POST http://localhost:8080/query \
 ## 🔒 Security Features
 
 ### Read-Only vs Read-Write Database Access
-- **File databases**: Opened in **read-only mode** using DuckDB's `access_mode=read_only`
-- **In-memory databases**: Opened in **read-write mode** when no `DATABASE_PATH` is specified
-- File databases block all write operations (INSERT, UPDATE, DELETE, CREATE, DROP)
-- In-memory databases allow full SQL operations for testing and development
+- **File databases**: Opened in **read-only mode** by default unless `GODUCK_READ_WRITE=true` is set
+- **In-memory databases**: Require **read-write mode** (`GODUCK_READ_WRITE=true`) when no `GODUCK_DATABASE_PATH` is specified
+- File databases in read-only mode block all write operations (INSERT, UPDATE, DELETE, CREATE, DROP)
+- Read-write mode allows full SQL operations for testing and development
 
 ### Rate Limiting
 - **60 requests per minute** per IP address
@@ -181,34 +186,36 @@ curl -X POST http://localhost:8080/query \
 - Request ID tracking for debugging
 - Structured logging for security monitoring
 
-## 📈 Performance & Monitoring
+## 📈 Monitoring
 
-### Connection Pooling
-- Configurable pool size (default: 10 connections)
-- Automatic connection lifecycle management
-- Idle connection cleanup
-- Pool statistics available via `/metrics`
+### Health Check
+```bash
+curl http://localhost:8080/health
+# Returns: {"status": "healthy", "time": "2025-07-21T19:08:27-04:00"}
+```
 
-### Query Performance
-- Configurable query timeouts (default: 30s)
-- Context-based cancellation
-- Execution time tracking
-- Connection reuse optimization
+### System Metrics
+```bash
+curl http://localhost:8080/metrics
+# Returns system stats, database pool status, and performance metrics
+```
 
-### Observability
-- **Request Tracing**: Unique request IDs for debugging
-- **Structured Logging**: JSON format with contextual information
-- **Metrics Endpoint**: System and database statistics
-- **Health Checks**: Database connectivity monitoring
+### Key Metrics to Monitor
+- **Connection Pool Usage**: Available in `/metrics` - watch for pool exhaustion
+- **Query Response Times**: Track via `/metrics` endpoint  
+- **Error Rates**: Monitor 4xx/5xx responses
+- **Memory Usage**: System memory stats in `/metrics`
 
-### Monitoring Metrics
-The `/metrics` endpoint provides:
-- **System**: Memory usage, goroutines, GC stats
-- **Database**: Connection pool status, query statistics
-- **Performance**: Uptime, response times
-- **Timestamp**: For time-series monitoring
+## 🚨 Troubleshooting
 
-## 🚨 Error Handling
+### Common Issues
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "in-memory database requires read-write access" | No `GODUCK_READ_WRITE=true` set | Set `GODUCK_READ_WRITE=true` for in-memory databases |
+| "failed to open database" | Invalid file path or permissions | Check file path and permissions |
+| "Query execution failed" | Invalid SQL syntax | Check SQL syntax |
+| "Rate limit exceeded" | Too many requests (60/min per IP) | Wait and retry |
+| "Query too large" | SQL > 10KB | Reduce query size |
 
 ### HTTP Status Codes
 - `200` - Success
@@ -217,75 +224,20 @@ The `/metrics` endpoint provides:
 - `500` - Internal Server Error (database issues)
 - `503` - Service Unavailable (health check failed)
 
-### Error Response Format
-```json
-{
-  "error": "Human-readable error message",
-  "timestamp": "2025-07-21T19:08:27-04:00"
-}
-```
+## 🔧 Advanced Configuration
 
-### Common Issues
-| Error | Cause | Solution |
-|-------|-------|----------|
-| "failed to open database" | Invalid file path or permissions | Check file path and permissions |
-| "Query execution failed" | Invalid SQL | Check SQL syntax |
-| "Rate limit exceeded" | Too many requests | Wait and retry |
-| "Query too large" | SQL > 10KB | Reduce query size |
+For advanced use cases, see the full configuration options:
 
-## 🛠️ Development
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GODUCK_DATABASE_PATH` | *Optional* | Path to DuckDB file (uses in-memory if not specified) |
+| `GODUCK_PORT` | `8080` | HTTP server port |
+| `GODUCK_QUERY_TIMEOUT` | `30s` | Query execution timeout |
+| `GODUCK_MAX_CONNECTIONS` | `10` | Database connection pool size |
+| `GODUCK_LOG_LEVEL` | `info` | Log level (debug, info, warn, error) |
+| `GODUCK_READ_WRITE` | `false` | Enable read-write access (required for in-memory) |
 
-### Project Structure
-```
-goduck/
-├── main.go                 # Application entry point
-├── internal/
-│   ├── config/            # Configuration management
-│   ├── database/          # Database connection handling
-│   ├── handlers/          # HTTP request handlers
-│   └── middleware/        # HTTP middleware
-├── pkg/models/            # Data models
-├── tests/                 # Test files
-├── data/                  # Sample databases
-└── Dockerfile            # Container definition
-```
-
-### Building from Source
-```bash
-# Clone repository
-git clone <repository-url>
-cd goduck
-
-# Install dependencies
-go mod download
-
-# Build binary
-go build -o goduck
-
-# Run tests
-go test ./...
-```
-
-### Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## 📦 Deployment
-
-### Production Checklist
-- [ ] Set appropriate `MAX_CONNECTIONS` for your load
-- [ ] Configure `QUERY_TIMEOUT` based on query complexity
-- [ ] Set `LOG_LEVEL=info` or `warn` for production
-- [ ] Monitor `/metrics` endpoint
-- [ ] Set up log aggregation
-- [ ] Configure reverse proxy (nginx, etc.)
-- [ ] Enable HTTPS termination
-- [ ] Set up monitoring alerts
-
-### Kubernetes Deployment
+### Kubernetes
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -297,9 +249,6 @@ spec:
     matchLabels:
       app: goduck
   template:
-    metadata:
-      labels:
-        app: goduck
     spec:
       containers:
       - name: goduck
@@ -307,9 +256,9 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: DATABASE_PATH
+        - name: GODUCK_DATABASE_PATH
           value: "/data/database.duckdb"
-        - name: MAX_CONNECTIONS
+        - name: GODUCK_MAX_CONNECTIONS
           value: "20"
         volumeMounts:
         - name: database
@@ -325,23 +274,18 @@ spec:
 
 ### Getting Help
 - 📖 Check this documentation first
-- 🐛 Report bugs via GitHub issues
+- 🐛 Report bugs via GitHub issues  
 - 💡 Request features via GitHub discussions
-- 📧 Contact maintainers for security issues
 
-### Common Questions
-**Q: Can I modify the database through GoDuck?**  
-A: File databases are read-only and block all write operations. In-memory databases allow full read-write access for development and testing.
+### Frequently Asked Questions
+**Q: Can I modify data through GoDuck?**  
+A: File databases are read-only by default. Set `GODUCK_READ_WRITE=true` to enable writes. In-memory databases always require read-write mode.
 
 **Q: What's the maximum query size?**  
 A: Queries are limited to 10KB to prevent abuse.
 
 **Q: How do I monitor performance?**  
-A: Use the `/metrics` endpoint and monitor connection pool statistics.
-
-**Q: Can I use with other databases?**  
-A: No, GoDuck is specifically designed for DuckDB files.
+A: Use the `/metrics` endpoint for system statistics and connection pool status.
 
 ---
-
-**Made with ❤️ for the DuckDB community**
+**Built for the DuckDB community** 🦆

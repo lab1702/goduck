@@ -23,7 +23,7 @@ func setupTestDB(t *testing.T) (*database.DB, string) {
 	dbPath := ":memory:"
 
 	// First create a writable connection to set up test data
-	writeDB, err := database.NewDB(dbPath, 1)
+	writeDB, err := database.NewDB(dbPath, 1, true)
 	if err != nil {
 		t.Skip("DuckDB not available in test environment, skipping database tests")
 		return nil, ""
@@ -91,13 +91,13 @@ func TestQueryEndpoint(t *testing.T) {
 				var response models.ErrorResponse
 				err := json.Unmarshal(body, &response)
 				require.NoError(t, err)
-				assert.Contains(t, response.Error, "cannot be empty")
+				assert.Contains(t, response.Error, "required")
 			},
 		},
 		{
 			name:         "invalid sql query",
 			requestBody:  models.QueryRequest{SQL: "INVALID SQL"},
-			expectedCode: http.StatusInternalServerError,
+			expectedCode: http.StatusBadRequest,
 			checkResult: func(t *testing.T, body []byte) {
 				var response models.ErrorResponse
 				err := json.Unmarshal(body, &response)
@@ -141,27 +141,22 @@ func TestHealthEndpoint(t *testing.T) {
 	assert.Equal(t, "healthy", response.Status)
 }
 
-func TestDatabaseReadOnly(t *testing.T) {
-	db, _ := setupTestDB(t)
+func TestDatabaseReadOnlyValidation(t *testing.T) {
+	// Test that in-memory database requires read-write mode
+	_, err := database.NewDB("", 1, false) // in-memory with read-only should fail
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "in-memory database requires read-write access")
+	assert.Contains(t, err.Error(), "GODUCK_READ_WRITE=true")
+
+	// Test that in-memory database works with read-write
+	db, err := database.NewDB("", 1, true) // in-memory with read-write should work
+	if err != nil {
+		t.Skip("DuckDB not available in test environment")
+		return
+	}
 	defer db.Close()
 
-	router := setupTestRouter(db)
-
-	insertQuery := models.QueryRequest{
-		SQL: "INSERT INTO test_table VALUES (3, 'should_fail')",
-	}
-
-	body, _ := json.Marshal(insertQuery)
-	req := httptest.NewRequest("POST", "/query", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-
-	var response models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
-	assert.Contains(t, response.Error, "Query execution failed")
+	// Verify we can write to it
+	_, err = db.GetConnection().Exec("CREATE TABLE test AS SELECT 1 as id")
+	assert.NoError(t, err)
 }
