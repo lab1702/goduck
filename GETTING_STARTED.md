@@ -24,8 +24,12 @@ cd goduck
 go build -o goduck
 ```
 
-### Step 2: Prepare Your Database
+### Step 2: Prepare Your Database (Optional)
 ```bash
+# Option A: Use in-memory database (no setup required)
+# Just skip to Step 3 - no DATABASE_PATH needed!
+
+# Option B: Use a file database
 # If you have a DuckDB file already, skip to Step 3
 # Otherwise, create a sample database:
 ./start_example.sh
@@ -33,16 +37,22 @@ go build -o goduck
 
 ### Step 3: Start the Server
 ```bash
-# Set the path to your DuckDB file
-export DATABASE_PATH="/path/to/your/database.duckdb"
+# Option A: Use in-memory database (great for development/testing)
+./goduck
 
-# Start GoDuck
+# Option B: Use a file database
+export DATABASE_PATH="/path/to/your/database.duckdb"
 ./goduck
 ```
 
 You should see:
 ```
-{"level":"info","msg":"Database connection established","time":"2025-07-21T19:12:14-04:00"}
+# For in-memory database:
+{"access_mode":"read_write","database_mode":"in-memory","level":"info","msg":"In-memory database connection established","time":"2025-07-21T19:12:14-04:00"}
+
+# For file database:
+{"access_mode":"read_only","database_path":"/path/to/database.duckdb","level":"info","msg":"Database connection established","time":"2025-07-21T19:12:14-04:00"}
+
 {"level":"info","msg":"Starting server","port":"8080","time":"2025-07-21T19:12:14-04:00"}
 ```
 
@@ -126,7 +136,7 @@ console.log(`Total users: ${users.rows[0][0]}`);
 
 ### Environment Variables
 ```bash
-# Required
+# Optional - if not set, uses in-memory database
 export DATABASE_PATH="/path/to/your/database.duckdb"
 
 # Optional (with defaults)
@@ -161,7 +171,10 @@ export QUERY_TIMEOUT="120s"
 **For complete Docker deployment options, see [README.md](README.md#docker-deployment)**
 
 ```bash
-# Quick run with your database
+# Quick run with in-memory database (no setup required)
+docker run -p 8080:8080 goduck:latest
+
+# Quick run with your database file
 docker run -p 8080:8080 \
   -v /path/to/your/database.duckdb:/data/database.duckdb:ro \
   -e DATABASE_PATH=/data/database.duckdb \
@@ -210,17 +223,15 @@ curl -X POST http://localhost:8080/query \
 
 ### Common Issues
 
-**"DATABASE_PATH is required"**
-```bash
-# Solution: Set the environment variable
-export DATABASE_PATH="/path/to/your/database.duckdb"
-```
-
 **"failed to open database"**
 ```bash
 # Check if file exists and has correct permissions
 ls -la /path/to/your/database.duckdb
 chmod 644 /path/to/your/database.duckdb
+
+# Or simply use in-memory mode for testing
+unset DATABASE_PATH
+./goduck
 ```
 
 **"Rate limit exceeded"**
@@ -232,7 +243,8 @@ chmod 644 /path/to/your/database.duckdb
 **"Query execution failed"**
 ```bash
 # Check your SQL syntax
-# Remember: only SELECT queries allowed
+# File databases: only SELECT queries allowed
+# In-memory databases: all SQL operations allowed
 # Use a DuckDB client to test queries first
 ```
 

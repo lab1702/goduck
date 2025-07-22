@@ -28,9 +28,7 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) Validate() error {
-	if c.DatabasePath == "" {
-		return fmt.Errorf("DATABASE_PATH is required")
-	}
+	// DatabasePath is now optional - if empty, will use in-memory database
 
 	if c.MaxConnections < 1 || c.MaxConnections > 100 {
 		return fmt.Errorf("MAX_CONNECTIONS must be between 1 and 100, got %d", c.MaxConnections)

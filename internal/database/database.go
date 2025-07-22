@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/marcboeker/go-duckdb"
+	_ "github.com/marcboeker/go-duckdb/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,8 +14,18 @@ type DB struct {
 }
 
 func NewDB(dbPath string, maxConnections int) (*DB, error) {
-	// Use connection configuration for read-only access
-	dsn := fmt.Sprintf("%s?access_mode=read_only", dbPath)
+	var dsn string
+	var inMemory bool
+
+	if dbPath == "" {
+		// Use in-memory database with read-write access when no path is specified
+		dsn = ":memory:?access_mode=read_write"
+		inMemory = true
+	} else {
+		// Use connection configuration for read-only access for file databases
+		dsn = fmt.Sprintf("%s?access_mode=read_only", dbPath)
+		inMemory = false
+	}
 
 	conn, err := sql.Open("duckdb", dsn)
 	if err != nil {
@@ -31,10 +41,19 @@ func NewDB(dbPath string, maxConnections int) (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"database_path":   dbPath,
-		"max_connections": maxConnections,
-	}).Info("Database connection established")
+	if inMemory {
+		logrus.WithFields(logrus.Fields{
+			"database_mode":   "in-memory",
+			"access_mode":     "read_write",
+			"max_connections": maxConnections,
+		}).Info("In-memory database connection established")
+	} else {
+		logrus.WithFields(logrus.Fields{
+			"database_path":   dbPath,
+			"access_mode":     "read_only",
+			"max_connections": maxConnections,
+		}).Info("Database connection established")
+	}
 
 	return &DB{conn: conn}, nil
 }

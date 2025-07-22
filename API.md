@@ -13,7 +13,9 @@ http://localhost:8080
 - **Rate Limit**: 60 requests per minute per IP address
 - **Response**: HTTP 429 when exceeded  
 - **Query Size Limit**: Maximum 10KB per SQL query
-- **Read-Only**: Only SELECT statements allowed
+- **Database Access**: 
+  - File databases: Read-only (SELECT statements only)
+  - In-memory databases: Read-write (all SQL operations allowed)
 - **Content-Type**: All requests/responses use `application/json`
 
 ---
@@ -21,7 +23,7 @@ http://localhost:8080
 ## Endpoints
 
 ### 1. Execute Query
-Execute a read-only SQL query against the DuckDB database.
+Execute a SQL query against the DuckDB database. File databases support read-only queries (SELECT), while in-memory databases support all SQL operations.
 
 **URL**: `/query`  
 **Method**: `POST`  
@@ -187,7 +189,8 @@ All errors return a consistent JSON format:
 - `Access-Control-Allow-Origin: *` (CORS enabled)
 
 ## Query Limitations
-- **Read-Only**: Only SELECT statements allowed
+- **File Databases**: Read-only access (SELECT statements only)
+- **In-Memory Databases**: Full read-write access (all SQL operations)
 - **Size Limit**: Maximum 10KB per query
 - **Timeout**: Queries timeout after configured duration (default: 30s)
 - **No Prepared Statements**: Each request is a single query

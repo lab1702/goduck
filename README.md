@@ -1,6 +1,6 @@
 # GoDuck - DuckDB REST API Server
 
-A production-ready, high-performance REST API server for executing SQL queries against read-only DuckDB databases.
+A production-ready, high-performance REST API server for executing SQL queries against DuckDB databases. Supports both file-based databases (read-only) and in-memory databases (read-write).
 
 ## 📚 Documentation
 
@@ -11,7 +11,7 @@ A production-ready, high-performance REST API server for executing SQL queries a
 
 ## ✨ Features
 
-- **🔒 Security First**: Read-only database mode with rate limiting and input validation
+- **🔒 Security First**: Read-only file databases or read-write in-memory databases with rate limiting and input validation
 - **⚡ High Performance**: Connection pooling, query timeouts, and optimized execution
 - **📊 Production Ready**: Comprehensive monitoring, metrics, and structured logging
 - **🛡️ Robust**: Request tracing, graceful shutdown, and error handling
@@ -23,7 +23,7 @@ A production-ready, high-performance REST API server for executing SQL queries a
 **New users:** See [GETTING_STARTED.md](GETTING_STARTED.md) for a detailed walkthrough.
 
 ```bash
-# 1. Set database path (required)
+# 1. Set database path (optional - uses in-memory if not specified)
 export DATABASE_PATH="/path/to/your/database.duckdb"
 
 # 2. Run the server
@@ -51,7 +51,7 @@ Configure GoDuck using environment variables:
 
 | Variable | Default | Description | Valid Range |
 |----------|---------|-------------|-------------|
-| `DATABASE_PATH` | **Required** | Path to DuckDB file (must be specified) | Any valid file path |
+| `DATABASE_PATH` | *Optional* | Path to DuckDB file (uses in-memory if not specified) | Any valid file path or empty |
 | `PORT` | `8080` | HTTP server port | 1-65535 |
 | `QUERY_TIMEOUT` | `30s` | Query execution timeout | 1s-10m |
 | `MAX_CONNECTIONS` | `10` | Database connection pool size | 1-100 |
@@ -59,7 +59,14 @@ Configure GoDuck using environment variables:
 
 ### 📋 Configuration Examples
 
-**Development:**
+**Development (with in-memory database):**
+```bash
+# No DATABASE_PATH needed - uses in-memory database
+export LOG_LEVEL="debug"
+export MAX_CONNECTIONS="5"
+```
+
+**Development (with file database):**
 ```bash
 export DATABASE_PATH="./data/development.duckdb"
 export LOG_LEVEL="debug"
@@ -79,9 +86,13 @@ export MAX_CONNECTIONS="25"
 
 ### Running Locally
 ```bash
-# Build and run
+# Build and run with file database
 go build -o goduck
 DATABASE_PATH=/path/to/your/database.duckdb ./goduck
+
+# Or run with in-memory database (no DATABASE_PATH needed)
+go build -o goduck
+./goduck
 
 # Or with go run
 DATABASE_PATH=/path/to/your/database.duckdb go run main.go
@@ -148,10 +159,11 @@ curl -X POST http://localhost:8080/query \
 
 ## 🔒 Security Features
 
-### Read-Only Database Access
-- Database opened in **read-only mode** using DuckDB's `access_mode=read_only`
-- All write operations (INSERT, UPDATE, DELETE, CREATE, DROP) are blocked by DuckDB
-- No risk of data modification through the API
+### Read-Only vs Read-Write Database Access
+- **File databases**: Opened in **read-only mode** using DuckDB's `access_mode=read_only`
+- **In-memory databases**: Opened in **read-write mode** when no `DATABASE_PATH` is specified
+- File databases block all write operations (INSERT, UPDATE, DELETE, CREATE, DROP)
+- In-memory databases allow full SQL operations for testing and development
 
 ### Rate Limiting
 - **60 requests per minute** per IP address
@@ -216,7 +228,7 @@ The `/metrics` endpoint provides:
 ### Common Issues
 | Error | Cause | Solution |
 |-------|-------|----------|
-| "DATABASE_PATH is required" | Missing env variable | Set `DATABASE_PATH` |
+| "failed to open database" | Invalid file path or permissions | Check file path and permissions |
 | "Query execution failed" | Invalid SQL | Check SQL syntax |
 | "Rate limit exceeded" | Too many requests | Wait and retry |
 | "Query too large" | SQL > 10KB | Reduce query size |
@@ -319,7 +331,7 @@ spec:
 
 ### Common Questions
 **Q: Can I modify the database through GoDuck?**  
-A: No, GoDuck enforces read-only access. All write operations are blocked.
+A: File databases are read-only and block all write operations. In-memory databases allow full read-write access for development and testing.
 
 **Q: What's the maximum query size?**  
 A: Queries are limited to 10KB to prevent abuse.

@@ -2,6 +2,20 @@
 
 All notable changes to GoDuck will be documented in this file.
 
+## [0.0.2] - 2025-07-21
+
+### Added
+- 🧠 **In-Memory Database Support**: Optional in-memory database mode when DATABASE_PATH is not specified
+  - Read-write access for in-memory databases (vs read-only for file databases)
+  - Perfect for development, testing, and temporary data analysis
+  - Automatic detection: file path provided = read-only file mode, no path = read-write memory mode
+
+### Changed
+- 📝 **Configuration**: DATABASE_PATH is now optional (was previously required)
+- 📚 **Documentation**: Updated all docs to reflect in-memory database option
+- ⬆️ **DuckDB Engine**: Updated from v1.1.3 to v1.3.2 for latest features and performance improvements
+- 📦 **Dependencies**: Migrated from go-duckdb v1.8.5 to v2.3.3 for better compatibility and future support
+
 ## [0.0.1] - 2025-07-21 - Initial Release
 
 ### Added
